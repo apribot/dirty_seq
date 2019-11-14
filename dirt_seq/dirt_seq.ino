@@ -1,12 +1,18 @@
+#include <MIDI.h>
+
 #include <Wire.h>
 
 #include <LiquidCrystal_I2C.h>
+
+
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #define printByte(args)  write(args);
 #else
 #define printByte(args)  print(args,BYTE);
 #endif
+
+MIDI_CREATE_DEFAULT_INSTANCE();
 
 
 uint8_t box0[] = {
@@ -61,6 +67,9 @@ char sharps[12] {
   '#'
 };
 
+uint8_t bpm = 120;
+uint8_t steps = 16;
+
 uint8_t patternNote[16] = {
   60,
   64,
@@ -103,8 +112,9 @@ uint8_t patternVelocity[16] = {
 
 LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 
-int pos = 0;
+uint8_t pos = 0;
 uint8_t curNote;
+uint8_t lastNote = 0;
 uint8_t curVelocity;
 
 uint8_t midiToNote(uint8_t val) {
@@ -115,6 +125,11 @@ uint8_t midiToOctave(uint8_t val) {
   return (val - 21) / 12;
 }
 
+int bpmToDelay(uint8_t val) {
+  return 60000 / (int) val;
+}
+
+
 void setup() {
   lcd.init();                      // initialize the lcd 
   lcd.backlight();
@@ -124,7 +139,7 @@ void setup() {
 
   lcd.home();
   
-  for(int i=0; i<16; i++) {
+  for(int i=0; i<steps; i++) {
     lcd.printByte(0);
   }
 
@@ -133,12 +148,14 @@ void setup() {
 
 void loop() {
 
-// clear old
   curNote = patternNote[pos];
   curVelocity = patternVelocity[pos];
 
+  MIDI.sendNoteOff(lastNote, 0, 1);
+  MIDI.sendNoteOn(curNote, curVelocity, 1);
+
   if(pos == 0) {
-    lcd.setCursor(15,0);
+    lcd.setCursor(steps-1,0);
     lcd.printByte(0);
     lcd.setCursor(pos,0);
     lcd.printByte(1);
@@ -156,8 +173,9 @@ void loop() {
   lcd.print(" v");
   lcd.print(curVelocity);
   pos++;
-  pos = pos % 16;
+  pos = pos % steps;
 
-  delay(500);
+  lastNote = curNote;
+  delay(bpmToDelay(bpm));
 
 }
