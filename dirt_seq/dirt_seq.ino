@@ -1,9 +1,20 @@
+#include <EasyButton.h>
+
 #include <MIDI.h>
 
 #include <Wire.h>
 
 #include <LiquidCrystal_I2C.h>
 
+
+/* 
+ * 
+ * [+1]
+ * 
+ * [-1][note][velo]   [play]    [bpm][length]
+ */
+#DEFINE NOTEPOT 0
+#DEFINE VELOPOT 1
 
 
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -129,29 +140,22 @@ int bpmToDelay(uint8_t val) {
   return 60000 / (int) val;
 }
 
-
-void setup() {
-  lcd.init();                      // initialize the lcd 
-  lcd.backlight();
-  
-  lcd.createChar(0, box0);
-  lcd.createChar(1, box1);
-
+void playInit() {
   lcd.home();
   
   for(int i=0; i<steps; i++) {
     lcd.printByte(0);
   }
 
-
 }
 
-void loop() {
-
+void playLoop() {
   curNote = patternNote[pos];
   curVelocity = patternVelocity[pos];
 
-  MIDI.sendNoteOff(lastNote, 0, 1);
+  if(lastNote != 0) {
+    MIDI.sendNoteOff(lastNote, 0, 1);
+  }
   MIDI.sendNoteOn(curNote, curVelocity, 1);
 
   if(pos == 0) {
@@ -177,5 +181,24 @@ void loop() {
 
   lastNote = curNote;
   delay(bpmToDelay(bpm));
+  // cant use delay, gotta use https://www.arduino.cc/en/Tutorial/BlinkWithoutDelay
+}
+
+
+void setup() {
+  lcd.init();                      // initialize the lcd 
+  lcd.backlight();
+  
+  lcd.createChar(0, box0);
+  lcd.createChar(1, box1);
+
+  playInit();
+
+}
+
+
+
+void loop() {
+  playLoop();
 
 }
