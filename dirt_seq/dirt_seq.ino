@@ -13,8 +13,7 @@
  * 
  * [-1][note][velo]   [play]    [bpm][length]
  */
-#DEFINE NOTEPOT 0
-#DEFINE VELOPOT 1
+
 
 
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -97,8 +96,7 @@ uint8_t patternNote[16] = {
   72,
   71,
   67,
-  64,
-    
+  64    
 };
 
 uint8_t patternVelocity[16] = {
@@ -120,13 +118,14 @@ uint8_t patternVelocity[16] = {
   210
 };
 
-
 LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 
 uint8_t pos = 0;
 uint8_t curNote;
 uint8_t lastNote = 0;
 uint8_t curVelocity;
+unsigned long previousMillis = 0;
+
 
 uint8_t midiToNote(uint8_t val) {
   return (val - 21) % 12;
@@ -136,8 +135,8 @@ uint8_t midiToOctave(uint8_t val) {
   return (val - 21) / 12;
 }
 
-int bpmToDelay(uint8_t val) {
-  return 60000 / (int) val;
+unsigned long bpmToDelay(uint8_t val) {
+  return 60000 / (unsigned long) val;
 }
 
 void playInit() {
@@ -146,7 +145,6 @@ void playInit() {
   for(int i=0; i<steps; i++) {
     lcd.printByte(0);
   }
-
 }
 
 void playLoop() {
@@ -180,8 +178,7 @@ void playLoop() {
   pos = pos % steps;
 
   lastNote = curNote;
-  delay(bpmToDelay(bpm));
-  // cant use delay, gotta use https://www.arduino.cc/en/Tutorial/BlinkWithoutDelay
+
 }
 
 
@@ -199,6 +196,10 @@ void setup() {
 
 
 void loop() {
-  playLoop();
+  unsigned long currentMillis = millis();
 
+  if(currentMillis - previousMillis > bpmToDelay(bpm)) {
+    previousMillis = currentMillis;
+    playLoop();
+  }
 }
