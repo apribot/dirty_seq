@@ -1,11 +1,15 @@
 #include <EasyButton.h>
-
 #include <MIDI.h>
-
 #include <Wire.h>
-
 #include <LiquidCrystal_I2C.h>
-
+#define NOTE_POT 4 
+#define VEL_POT 3
+#define POS_POT 2
+#define LEN_POT 1
+#define BPM_POT 0
+#define OCT_UP_BTN 10
+#define OCT_DN_BTN 11
+#define PLAY_BTN 12
 
 /* 
  * 
@@ -119,13 +123,14 @@ uint8_t patternVelocity[16] = {
 };
 
 LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+EasyButton play_button(PLAY_BTN);
 
 uint8_t pos = 0;
 uint8_t curNote;
 uint8_t lastNote = 0;
 uint8_t curVelocity;
 unsigned long previousMillis = 0;
-
+bool isPlay = false;
 
 uint8_t midiToNote(uint8_t val) {
   return (val - 21) % 12;
@@ -174,11 +179,23 @@ void playLoop() {
 
   lcd.print(" v");
   lcd.print(curVelocity);
+
+  lcd.print(" ");
+  lcd.print(bpm);
+  lcd.print("bpm");
   pos++;
   pos = pos % steps;
 
   lastNote = curNote;
 
+}
+
+void doPlayPause() {
+  if(isPlay) {
+    isPlay = false;
+  } else {
+    isPlay = true;
+  }
 }
 
 
@@ -189,6 +206,8 @@ void setup() {
   lcd.createChar(0, box0);
   lcd.createChar(1, box1);
 
+  play_button.begin();
+  play_button.onPressed(doPlayPause);
   playInit();
 
 }
@@ -196,10 +215,15 @@ void setup() {
 
 
 void loop() {
+  play_button.read();
   unsigned long currentMillis = millis();
 
-  if(currentMillis - previousMillis > bpmToDelay(bpm)) {
-    previousMillis = currentMillis;
-    playLoop();
+  bpm = map(analogRead(BPM_POT), 1, 1024, 40, 200);
+
+  if(isPlay) {
+    if(currentMillis - previousMillis > bpmToDelay(bpm)) {
+      previousMillis = currentMillis;
+      playLoop();
+    }
   }
 }
