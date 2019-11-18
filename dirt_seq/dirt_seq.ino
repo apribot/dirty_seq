@@ -129,6 +129,11 @@ uint8_t pos = 0;
 uint8_t curNote;
 uint8_t lastNote = 0;
 uint8_t curVelocity;
+uint8_t selectedNote;
+uint8_t selectedVelocity;
+
+
+
 unsigned long previousMillis = 0;
 bool isPlay = false;
 
@@ -141,7 +146,8 @@ uint8_t midiToOctave(uint8_t val) {
 }
 
 unsigned long bpmToDelay(uint8_t val) {
-  return 60000 / (unsigned long) val;
+  //60000 for for whole notes, we want quarter notes
+  return 15000 / (unsigned long) val;
 }
 
 void playInit() {
@@ -192,8 +198,12 @@ void playLoop() {
 
 void doPlayPause() {
   if(isPlay) {
+    // kill ringing note
+    MIDI.sendNoteOff(lastNote, 0, 1);
     isPlay = false;
+    playInit();
   } else {
+    pos = 0;
     isPlay = true;
   }
 }
@@ -206,20 +216,29 @@ void setup() {
   lcd.createChar(0, box0);
   lcd.createChar(1, box1);
 
+  MIDI.begin(MIDI_CHANNEL_OMNI);
   play_button.begin();
   play_button.onPressed(doPlayPause);
   playInit();
 
 }
 
+void readPots() {
 
+  // maybe break this up per loops for performance
+  bpm = map(analogRead(BPM_POT), 0, 1023, 40, 200);
+  selectedNote = map(analogRead(NOTE_POT), 0, 1023, 0, 12);
+  selectedVelocity = map(analogRead(VEL_POT), 0, 1023, 0, 255);
+
+  
+}
 
 void loop() {
   play_button.read();
   unsigned long currentMillis = millis();
 
-  bpm = map(analogRead(BPM_POT), 1, 1024, 40, 200);
-
+  readPots();
+  
   if(isPlay) {
     if(currentMillis - previousMillis > bpmToDelay(bpm)) {
       previousMillis = currentMillis;
