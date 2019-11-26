@@ -73,9 +73,10 @@ void playLoop() {
   curNote = patternNote[pos];
   curVelocity = patternVelocity[pos];
 
-  MIDI.sendNoteOn(curNote, curVelocity, 1);
-  noteIsPlaying = true;
-  
+  if(curVelocity != 0) {
+    MIDI.sendNoteOn(curNote, curVelocity, 1);
+    noteIsPlaying = true;
+  }
   if(pos == 0) {
     lcd.setCursor(steps-1,0);
     lcd.printByte(0);
@@ -107,6 +108,7 @@ void doPlayPause() {
     isOctDn = false;
     playInit();
   } else {
+    playInit();
     pos = 0;
     isPlay = true;
   }
@@ -124,7 +126,7 @@ void readPots() {
   // maybe break this up per loops for performance
   bpm = map(analogRead(BPM_POT), 0, 1023, 40, 200);
   selectedNote = map(analogRead(NOTE_POT), 0, 1023, 0, 12);
-  selectedVelocity = map(analogRead(VEL_POT), 0, 1023, 0, 255);  
+  selectedVelocity = map(analogRead(VEL_POT), 0, 1023, 0, 127);  
   selectedPosition = map(analogRead(POS_POT), 0, 1023, 0, 15);
 
 }
@@ -221,9 +223,12 @@ void loop() {
       lcd.print(notes[midiToNote(curNote)]);
       lcd.print(sharps[midiToNote(curNote)]);
 
-      lcd.print(" v");
-      lcd.print(curVelocity);
-    
+      if(curVelocity == 0) {
+        lcd.print("  off");
+      } else {
+        lcd.print(" v");
+        lcd.print(curVelocity);
+      }  
       lcd.print(" ");
       lcd.print(bpm);
       lcd.print("bpm");
