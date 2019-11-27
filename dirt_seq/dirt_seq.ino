@@ -2,6 +2,7 @@
 #include <MIDI.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <EEPROM.h>
 #include "stuff.h"
 
 #define NOTE_POT 6 
@@ -58,6 +59,43 @@ unsigned long bpmToDelay(uint8_t val) {
   return 15000 / (unsigned long) val;
 }
 
+void loadSettings() {
+  int addr;
+  // load pattern notes
+
+  // idk if this is a good idea
+  // but we put a header in here 
+  // to see if the eeprom has data yet
+  if(EEPROM.read(0) == 4 && EEPROM.read(1) == 20) {
+    
+    for(addr=2; addr<18; addr++) {  
+      patternNote[addr-2] = EEPROM.read(addr);
+    }
+    for(addr=18; addr<34; addr++) {
+      patternVelocity[addr-18] = EEPROM.read(addr);
+    }
+    bpm = EEPROM.read(34);
+  }
+}
+
+void saveSettings() {
+  int addr;
+  // header
+  EEPROM.write(0, 4);
+  EEPROM.write(1, 20);    
+  
+  for(addr=2; addr<18; addr++) {  
+    EEPROM.write(addr, patternNote[addr-2]);
+  }
+  
+  for(addr=18; addr<34; addr++) {
+    EEPROM.write(addr, patternVelocity[addr-18]);
+  }
+  // this don't work yet uwu
+  EEPROM.write(34, bpm);
+}
+
+
 void playInit() {
   lcd.home();
   
@@ -99,6 +137,7 @@ void playLoop() {
 }
 
 void doPlayPause() {
+  saveSettings();
   if(isPlay) {
     // kill ringing note
     MIDI.sendNoteOff(lastNote, 0, 1);
@@ -132,6 +171,7 @@ void readPots() {
 }
 
 void setup() {
+  loadSettings();
   lcd.init();                      // initialize the lcd 
   lcd.backlight();
   
